@@ -21,7 +21,8 @@ import RequestItem from '../../components/RequestItem';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LandlordStackParamList } from '../../navigation/LandlordStack';
 
-type Props = NativeStackScreenProps<LandlordStackParamList, 'Requests'>;
+// Add type for route params
+type RequestsScreenProps = NativeStackScreenProps<LandlordStackParamList, 'Requests'>;
 
 interface PropertyData {
   title: string;
@@ -50,18 +51,22 @@ interface RequestWithDetails extends Request {
   tenant: TenantData;
 }
 
-const RequestsScreen: React.FC<Props> = () => {
+const RequestsScreen: React.FC<RequestsScreenProps> = ({ route }) => {
   const [requests, setRequests] = useState<RequestWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { userData } = useAuth();
+  
+  // Get propertyId from route params
+  const { propertyId } = route.params;
 
   useEffect(() => {
-    if (!userData) return;
+    if (!userData || !propertyId) return;
 
     const q = query(
       collection(db, 'requests'),
-      where('landlordId', '==', userData.uid)
+      where('landlordId', '==', userData.uid),
+      where('propertyId', '==', propertyId)  // Add this filter
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -80,7 +85,7 @@ const RequestsScreen: React.FC<Props> = () => {
             const tenantDoc = await getDoc(tenantDocRef);
             const tenantData = tenantDoc.data() as TenantData | undefined;
             
-            const requestWithDetails: RequestWithDetails = {
+            return {
               ...requestData,
               id: document.id,
               property: {
@@ -94,8 +99,6 @@ const RequestsScreen: React.FC<Props> = () => {
                 ...(tenantData || {})
               }
             };
-
-            return requestWithDetails;
           })
         );
         
@@ -108,7 +111,7 @@ const RequestsScreen: React.FC<Props> = () => {
     });
 
     return () => unsubscribe();
-  }, [userData]);
+  }, [userData, propertyId]);  // Add propertyId to dependencies
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);

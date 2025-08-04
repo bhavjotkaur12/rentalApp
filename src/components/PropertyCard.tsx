@@ -21,7 +21,8 @@ interface PropertyCardProps {
     isListed: boolean;
   };
   onPress: () => void;
-  onRequestsPress: () => void;
+  onRequestsPress: (propertyId: string) => void;
+  onToggleList?: (propertyId: string) => void;  // Add this prop
   isLandlord: boolean;
 }
 
@@ -32,31 +33,37 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   isLandlord
 }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      {/* Add Image Display */}
-      {property.images && property.images.length > 0 && (
-        <Image
-          source={{ uri: property.images[0] }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      )}
+    <View style={styles.container}>
+      <TouchableOpacity onPress={onPress}>
+        {/* Image and content section */}
+        {property.images && property.images.length > 0 && (
+          <Image
+            source={{ uri: property.images[0] }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
 
-      <View style={styles.content}>
-        <Text style={styles.title}>{property.title}</Text>
-        <Text style={styles.price}>${property.price}/month</Text>
-        <Text style={styles.address}>{property.address}</Text>
-        
-        <Text style={styles.description} numberOfLines={2}>
-          {property.description}
-        </Text>
+        <View style={styles.content}>
+          <Text style={styles.title}>{property.title}</Text>
+          <Text style={styles.price}>${property.price}/month</Text>
+          <Text style={styles.address}>{property.address}</Text>
+          
+          <Text style={styles.description} numberOfLines={2}>
+            {property.description}
+          </Text>
 
-        {property.features?.map((feature, index) => (
-          <Text key={index} style={styles.feature}>• {feature}</Text>
-        ))}
+          {property.features?.map((feature, index) => (
+            <Text key={index} style={styles.feature}>• {feature}</Text>
+          ))}
+        </View>
+      </TouchableOpacity>
 
-        <View style={styles.buttonContainer}>
-          {isLandlord && (
+      {/* Buttons section */}
+      <View style={styles.buttonContainer}>
+        {isLandlord ? (
+          // Show landlord controls only if they own the property
+          <>
             <TouchableOpacity
               style={[styles.button, !property.isListed && styles.delistedButton]}
               onPress={onPress}
@@ -65,17 +72,25 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
                 {property.isListed ? 'Delist Property' : 'List Property'}
               </Text>
             </TouchableOpacity>
-          )}
 
+            <TouchableOpacity
+              style={[styles.button, styles.requestsButton]}
+              onPress={() => onRequestsPress(property.id)}
+            >
+              <Text style={styles.buttonText}>View Requests</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          // Show only view details button for other properties
           <TouchableOpacity
-            style={[styles.button, styles.requestsButton]}
-            onPress={onRequestsPress}
+            style={[styles.button, styles.viewDetailsButton]}
+            onPress={onPress}
           >
-            <Text style={styles.buttonText}>View Requests</Text>
+            <Text style={styles.buttonText}>View Details</Text>
           </TouchableOpacity>
-        </View>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -147,6 +162,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  requestViewingButton: {
+    backgroundColor: '#007AFF',  // Different color for tenant action
+  },
+  viewDetailsButton: {
+    backgroundColor: '#007AFF',
   },
 });
 

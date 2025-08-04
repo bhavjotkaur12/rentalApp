@@ -7,8 +7,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Image,
+  Alert,
 } from 'react-native';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/FirebaseConfig';
 import { useAuth } from '../../context/AuthContext';
 import PropertyCard from '../../components/PropertyCard';
@@ -88,6 +90,22 @@ const PropertyListScreen: React.FC<Props> = ({ navigation }) => {
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
 
+  const handleToggleList = async (propertyId: string) => {
+    try {
+      const property = properties.find(p => p.id === propertyId);
+      if (!property) return;
+
+      const propertyRef = doc(db, 'properties', propertyId);
+      await updateDoc(propertyRef, {
+        isListed: !property.isListed,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error toggling property listing:', error);
+      Alert.alert('Error', 'Failed to update property listing status');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -107,7 +125,8 @@ const PropertyListScreen: React.FC<Props> = ({ navigation }) => {
               propertyId: item.id,
               isOwner: true
             })}
-            onRequestsPress={() => navigation.navigate('Requests')}
+            onRequestsPress={() => navigation.navigate('Requests', { propertyId: item.id })}
+            onToggleList={handleToggleList}  // Add this prop
             isLandlord={true}
           />
         )}

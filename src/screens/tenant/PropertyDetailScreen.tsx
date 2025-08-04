@@ -9,7 +9,10 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  FlatList,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { doc, getDoc, addDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/FirebaseConfig';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +31,11 @@ interface Property {
   updatedAt: Date;
 }
 
+interface LocationCoords {
+  latitude: number;
+  longitude: number;
+}
+
 const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: any }) => {
   const { propertyId } = route.params;
   const { userData } = useAuth();
@@ -35,18 +43,62 @@ const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: a
   const [loading, setLoading] = useState(true);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [hasRequested, setHasRequested] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [propertyLocation, setPropertyLocation] = useState<LocationCoords | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // Default region (Toronto)
+  const defaultRegion = {
+    latitude: 43.6532,
+    longitude: -79.3832,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+
+  // Function to get coordinates from address
+  const getPropertyCoordinates = async (address: string) => {
+    try {
+      setLocationLoading(true);
+      const permission = await Location.requestForegroundPermissionsAsync();
+      
+      if (permission.status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to show the map.');
+        return;
+      }
+
+      const geocodeResult = await Location.geocodeAsync(address);
+
+      if (geocodeResult && geocodeResult.length > 0) {
+        const { latitude, longitude } = geocodeResult[0];
+        setPropertyLocation({ latitude, longitude });
+      } else {
+        console.log('No location found for the address');
+      }
+    } catch (error) {
+      console.error('Error getting property coordinates:', error);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
       if (!propertyId || !userData?.uid) {
+        console.log('Missing propertyId or userData:', { propertyId, userUid: userData?.uid });
         setLoading(false);
         return;
       }
 
       try {
+        console.log('Fetching property:', propertyId);
+        console.log('Current user:', userData);
+        
         const propertyDoc = await getDoc(doc(db, 'properties', propertyId));
+        console.log('Property exists:', propertyDoc.exists());
+        
         if (propertyDoc.exists()) {
           const propertyData = propertyDoc.data();
+          console.log('Property data:', propertyData);
           setProperty({
             id: propertyDoc.id,
             ...propertyData,
@@ -71,9 +123,22 @@ const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: a
           );
           const requestDocs = await getDocs(requestQuery);
           setHasRequested(!requestDocs.empty);
+
+          // Get coordinates for the property address
+          if (propertyData.address) {
+            getPropertyCoordinates(propertyData.address);
+          }
         }
       } catch (error) {
         console.error('Error fetching property details:', error);
+        // Log the full error object
+        if (error instanceof Error) {
+          console.log('Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
+        }
         Alert.alert('Error', 'Failed to load property details');
       } finally {
         setLoading(false);
@@ -139,6 +204,14 @@ const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: a
     }
   };
 
+  const renderImageItem = ({ item }: { item: string }) => (
+    <Image
+      source={{ uri: item }}
+      style={styles.image}
+      resizeMode="cover"
+    />
+  );
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -158,14 +231,31 @@ const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: a
   return (
     <ScrollView style={styles.container}>
       {property.images && property.images.length > 0 ? (
-        <Image
-          source={{ uri: property.images[0] }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <View>
+          <FlatList
+            data={property.images}
+            renderItem={renderImageItem}
+            keyExtractor={(item, index) => index.toString()}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.imageContainer}
+            onScroll={(event) => {
+              const contentOffset = event.nativeEvent.contentOffset.x;
+              const imageIndex = Math.round(contentOffset / Dimensions.get('window').width);
+              setActiveImageIndex(imageIndex);
+            }}
+            scrollEventThrottle={16}
+          />
+          <View style={styles.imageCounter}>
+            <Text style={styles.imageCounterText}>
+              {`${property.images.length} Photos`}
+            </Text>
+          </View>
+        </View>
       ) : (
         <View style={styles.placeholderImage}>
-          <Text>No image available</Text>
+          <Text>No images available</Text>
         </View>
       )}
 
@@ -173,6 +263,39 @@ const PropertyDetailScreen = ({ route, navigation }: { route: any, navigation: a
         <Text style={styles.title}>{property.title}</Text>
         <Text style={styles.price}>${property.price}/month</Text>
         <Text style={styles.address}>{property.address}</Text>
+
+        {/* Map Section */}
+        <Text style={styles.sectionTitle}>Location</Text>
+        <View style={styles.mapContainer}>
+          {locationLoading ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : (
+            <MapView
+              style={styles.map}
+              initialRegion={
+                propertyLocation
+                  ? {
+                      latitude: propertyLocation.latitude,
+                      longitude: propertyLocation.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }
+                  : defaultRegion
+              }
+            >
+              {propertyLocation && (
+                <Marker
+                  coordinate={{
+                    latitude: propertyLocation.latitude,
+                    longitude: propertyLocation.longitude,
+                  }}
+                  title={property.title}
+                  description={property.address}
+                />
+              )}
+            </MapView>
+          )}
+        </View>
 
         <Text style={styles.sectionTitle}>Description</Text>
         <Text style={styles.description}>{property.description}</Text>
@@ -295,6 +418,52 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  imageContainer: {
+    height: 250, // or whatever height you prefer
+  },
+  imageCounter: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  imageCounterText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  dotContainer: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  activeDot: {
+    backgroundColor: '#fff',
+  },
+  mapContainer: {
+    height: 200,
+    marginVertical: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
   },
 });
 

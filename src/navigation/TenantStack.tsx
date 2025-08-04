@@ -38,6 +38,32 @@ const SearchStack = () => {
   );
 };
 
+const ShortlistStack = () => {
+  const { signOut } = useAuth();
+
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="ShortlistScreen" 
+        component={ShortlistScreen}
+        options={{
+          title: 'Shortlist',
+          headerRight: () => (
+            <TouchableOpacity onPress={signOut}>
+              <Text style={{ color: '#FF3B30', fontSize: 16, marginRight: 15 }}>Logout</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <Stack.Screen 
+        name="PropertyDetail" 
+        component={PropertyDetailScreen}
+        options={{ title: 'Property Details' }}
+      />
+    </Stack.Navigator>
+  );
+};
+
 const TenantStack = () => {
   const { signOut } = useAuth();
 
@@ -49,7 +75,7 @@ const TenantStack = () => {
 
           if (route.name === 'SearchStack') {
             iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'Shortlist') {
+          } else if (route.name === 'ShortlistStack') {  // Updated name
             iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === 'Requests') {
             iconName = focused ? 'document-text' : 'document-text-outline';
@@ -65,15 +91,9 @@ const TenantStack = () => {
         options={{ headerShown: false, title: 'Search' }}
       />
       <Tab.Screen 
-        name="Shortlist" 
-        component={ShortlistScreen}
-        options={{
-          headerRight: () => (
-            <TouchableOpacity onPress={signOut}>
-              <Text style={{ color: '#FF3B30', fontSize: 16, marginRight: 15 }}>Logout</Text>
-            </TouchableOpacity>
-          ),
-        }}
+        name="ShortlistStack"  // Updated name
+        component={ShortlistStack}  // Use the new stack
+        options={{ headerShown: false, title: 'Shortlist' }}
       />
       <Tab.Screen 
         name="Requests" 

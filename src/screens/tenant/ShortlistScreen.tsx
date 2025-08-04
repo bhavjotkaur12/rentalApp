@@ -117,10 +117,7 @@ const ShortlistScreen = ({ navigation }: { navigation: any }) => {
         renderItem={({ item }) => (
           <PropertyCard
             property={item}
-            onPress={() => navigation.navigate('Search', {
-              screen: 'PropertyDetail',
-              params: { propertyId: item.id }
-            })}
+            onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
             onRequestsPress={() => {}}
             isLandlord={false}
           />
