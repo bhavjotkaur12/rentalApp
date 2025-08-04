@@ -59,6 +59,7 @@ const RequestsScreen = ({ navigation }: { navigation: any }) => {
   const { userData } = useAuth();
 
   useEffect(() => {
+    
     if (!userData?.uid) {
       setLoading(false);
       return;
