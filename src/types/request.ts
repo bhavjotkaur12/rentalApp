@@ -28,7 +28,10 @@ export interface PropertyData {
   
   // For tenant's view
   export interface RequestWithLandlord extends BaseRequest {
-    landlord: UserData;
+    landlord: {
+      displayName: string;
+      email: string;
+    };
   }
   
   // Union type for the request item

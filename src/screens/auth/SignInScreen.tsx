@@ -34,6 +34,7 @@ const SignInScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to RentHub</Text>
+      <Text style={styles.subtitle}>Find your perfect home</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -102,6 +103,13 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#007AFF',
     fontSize: 16,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#000',
+    opacity: 0.8,
+    marginBottom: 30,
+    textAlign: 'center',
   },
 });
 

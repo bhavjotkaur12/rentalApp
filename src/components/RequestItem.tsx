@@ -76,6 +76,17 @@ const RequestItem: React.FC<RequestItemProps> = ({ request, isLandlord, onWithdr
         <Text style={styles.value}>{userInfo.displayName}</Text>
       </View>
 
+      {/* Show landlord email if request is approved and viewer is tenant */}
+      {!isLandlord && request.status === 'approved' && (
+        <View style={styles.contactInfo}>
+          <Text style={styles.label}>Contact Email:</Text>
+          <Text style={styles.value}>{userInfo.email}</Text>
+          <Text style={styles.contactNote}>
+            You can now contact the landlord directly to arrange viewing.
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.message}>{request.message}</Text>
 
       {isLandlord && request.status === 'pending' && (
@@ -183,6 +194,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  contactInfo: {
+    backgroundColor: '#f0f8ff', // Light blue background
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  contactNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });
 
